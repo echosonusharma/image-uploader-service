@@ -35,10 +35,10 @@ func GetUser(userId int64) (*User, error) {
 	}, nil
 }
 
-func GetAllUsers() ([]User, error) {
+func GetAllUsers(limit int64, offset int64) ([]User, error) {
 	users := []User{}
 
-	rows, err := Db.Query("SELECT id, name, email, profilePic FROM users;")
+	rows, err := Db.Query("SELECT id, name, email, profilePic FROM users LIMIT ? OFFSET ? ;", limit, offset)
 	if err != nil {
 		return nil, err
 	}

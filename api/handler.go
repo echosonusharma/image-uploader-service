@@ -130,7 +130,28 @@ func (s *ApiServer) HandleGetUser(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (s *ApiServer) HandleGetAllUser(w http.ResponseWriter, r *http.Request) error {
-	data, err := userHandler.GetAllUsers()
+	limit := r.URL.Query().Get("limit")
+	offset := r.URL.Query().Get("offset")
+
+	if limit == "" {
+		limit = "10"
+	}
+
+	if offset == "" {
+		offset = "0"
+	}
+
+	parsedLimit, parseErrLimit := strconv.ParseInt(limit, 10, 64)
+	if parseErrLimit != nil {
+		return &ApiErr{Err: "invalid limit provided!"}
+	}
+
+	parsedOffset, parseErrOffset := strconv.ParseInt(offset, 10, 64)
+	if parseErrOffset != nil {
+		return &ApiErr{Err: "invalid offset provided!"}
+	}
+
+	data, err := userHandler.GetAllUsers(parsedLimit, parsedOffset)
 	if err != nil {
 		return err
 	}
@@ -226,7 +247,7 @@ func FileUploadHandler(r *http.Request) (string, error) {
 
 	errCh := make(chan error, 1)
 
-	sysFileName := fmt.Sprintf("%d-%s", time.Now().UnixMilli(), handler.Filename)
+	sysFileName := fmt.Sprintf("%d-%s", time.Now().UnixMicro(), handler.Filename)
 
 	// store the file
 	go func() {

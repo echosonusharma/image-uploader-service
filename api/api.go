@@ -3,9 +3,11 @@ package api
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/echosonusharma/image-uploader-service/logger"
 	"github.com/echosonusharma/image-uploader-service/utils"
 
 	"github.com/go-chi/httprate"
@@ -36,7 +38,7 @@ func (s *ApiServer) Run() {
 
 	// per ip & per path
 	router.Use(httprate.Limit(
-		1000,           // requests
+		100,            // requests
 		10*time.Second, // per duration
 		httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint),
 	))
@@ -69,10 +71,10 @@ func (s *ApiServer) Run() {
 	mainRouter.HandleFunc("/user/profilePic", makeHTTPHandlerFunc(s.HandleUploadUserProfilePic)).Methods(http.MethodPost)
 	mainRouter.HandleFunc("/user/profilePic/{userId}", makeHTTPHandlerFunc(s.HandleUploadUserProfilePic)).Methods(http.MethodPost)
 
-	log.Printf("🚀 Server is running on http://127.0.0.1:%s", s.listenAddr)
+	logger.Log.Info(fmt.Sprintf("🚀 Server is running on http://127.0.0.1:%s", s.listenAddr))
 
 	srv := &http.Server{
-		Handler:      utils.StripSlashes(router),
+		Handler:      utils.StripSlashes(requestLog(router)),
 		Addr:         fmt.Sprintf("127.0.0.1:%s", s.listenAddr),
 		WriteTimeout: s.writeTimeout,
 		ReadTimeout:  s.readTimeout,
@@ -106,6 +108,7 @@ var genericApiErr *ApiErr = &ApiErr{
 	StatusCode: http.StatusInternalServerError,
 }
 
+// wrapper for error handling
 func makeHTTPHandlerFunc(f apiHandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := f(w, r); err != nil {
@@ -121,4 +124,20 @@ func makeHTTPHandlerFunc(f apiHandlerFunc) http.HandlerFunc {
 			}
 		}
 	}
+}
+
+// middleware for request logging
+func requestLog(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+		next.ServeHTTP(w, r)
+		duration := time.Since(startTime)
+
+		logger.Log.Info("success",
+			slog.Group("request",
+				slog.String("method", r.Method),
+				slog.String("path", r.RequestURI),
+				slog.String("duration", duration.String())),
+		)
+	})
 }

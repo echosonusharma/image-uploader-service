@@ -1,10 +1,5 @@
 # image uploader service
 
-
-### to add
-
-- image compressor 
-- logger
-- req context
-- graceful shutdown
-- cron job for img
+- CURD 🤣 functionally over users
+- profile pic (image) uploading and saving on disk
+- cron job to clear out unlinked images to users
