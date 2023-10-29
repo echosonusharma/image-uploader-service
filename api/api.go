@@ -71,6 +71,9 @@ func (s *ApiServer) Run() {
 	mainRouter.HandleFunc("/user/profilePic", makeHTTPHandlerFunc(s.HandleUploadUserProfilePic)).Methods(http.MethodPost)
 	mainRouter.HandleFunc("/user/profilePic/{userId}", makeHTTPHandlerFunc(s.HandleUploadUserProfilePic)).Methods(http.MethodPost)
 
+	fs := http.FileServer(http.Dir("./storage/"))
+	mainRouter.PathPrefix("/static/").Handler(http.StripPrefix("/api/v1/static/", fs))
+
 	logger.Log.Info(fmt.Sprintf("🚀 Server is running on http://127.0.0.1:%s", s.listenAddr))
 
 	srv := &http.Server{
